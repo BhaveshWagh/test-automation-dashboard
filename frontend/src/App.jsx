@@ -3,6 +3,8 @@ import Dashboard from './pages/Dashboard';
 import RunsList from './pages/RunsList';
 import RunDetail from './pages/RunDetail';
 import FlakyTests from './pages/FlakyTests';
+import TestCases from './pages/TestCases';
+import TestCaseDetail from './pages/TestCaseDetail';
 
 export default function App() {
   return (
@@ -19,6 +21,9 @@ export default function App() {
           <NavLink to="/flaky" className={({ isActive }) => (isActive ? 'active' : '')}>
             Flaky Tests
           </NavLink>
+          <NavLink to="/testcases" className={({ isActive }) => (isActive ? 'active' : '')}>
+            Test Cases
+          </NavLink>
         </nav>
       </div>
 
@@ -27,6 +32,8 @@ export default function App() {
         <Route path="/runs" element={<RunsList />} />
         <Route path="/runs/:id" element={<RunDetail />} />
         <Route path="/flaky" element={<FlakyTests />} />
+        <Route path="/testcases" element={<TestCases />} />
+        <Route path="/testcases/:id" element={<TestCaseDetail />} />
       </Routes>
     </div>
   );
