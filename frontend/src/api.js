@@ -10,3 +10,6 @@ export const getFlaky = (project) => api.get('/analytics/flaky', { params: { pro
 export const getRuns = (page = 1, limit = 15, project) =>
   api.get('/runs', { params: { page, limit, project } }).then((r) => r.data);
 export const getRun = (id) => api.get(`/runs/${id}`).then((r) => r.data);
+
+export const getTestCases = (params = {}) => api.get('/testcases', { params }).then((r) => r.data);
+export const getTestCase = (id) => api.get(`/testcases/${id}`).then((r) => r.data);

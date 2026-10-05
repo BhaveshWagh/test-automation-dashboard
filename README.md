@@ -26,8 +26,10 @@ test suites — and shows:
 ```
 backend/                  Express API + MongoDB (Mongoose)
   models/TestRun.js        Schema: a run + its embedded test case results
+  models/TestCase.js        Schema: a reusable test case definition (steps, priority, tags)
   routes/runs.js            Ingest a run (POST), list runs, get run detail
   routes/analytics.js       /summary, /trend, /flaky — the aggregation logic
+  routes/testcases.js       Full CRUD + bulk-create for test case definitions
   scripts/seed.js           Generates 40 realistic historical runs, including
                              a few deliberately flaky and one deliberately
                              broken test, so the dashboard has something to show
@@ -37,6 +39,12 @@ frontend/                 React (Vite) + Recharts + React Router
   src/pages/RunsList.jsx    Paginated run history
   src/pages/RunDetail.jsx   Per-test results for one run, filterable by status
   src/pages/FlakyTests.jsx  Ranked list of flaky tests
+
+mcp-server/               Standalone MCP server (stdio) for AI-assisted authoring
+  index.js                  Registers tools, connects over stdio
+  apiClient.js               Thin axios client calling the backend REST API
+  tools/testCaseTools.js     create/bulk_create/list/get/update/delete test cases
+  tools/analyticsTools.js    get_flaky_tests, get_run_summary (read-only wrappers)
 ```
 
 **Data model**: a `TestRun` document embeds its `testCases` array (name,
@@ -97,6 +105,62 @@ Playwright or Jest JSON reporter with a small transform script):
     { "name": "login with valid credentials", "suite": "auth", "status": "passed", "durationMs": 812 }
   ]
 }
+```
+
+## Test Case Management
+
+Unlike `TestRun` (which only records the *results* of tests that already
+ran), `TestCase` is a reusable definition: title, preconditions, ordered
+steps (each with its own expected result), priority, type, status, tags,
+and a `project`/`suite` grouping consistent with how `TestRun` already
+tags runs. `TestCase` and `TestRun` are intentionally decoupled — there's
+no foreign key between them, only an optional `linkedTestName` convention
+for cross-referencing a case to a `TestRun.testCases[].name`.
+
+REST API (`backend/routes/testcases.js`, validated with Zod):
+
+- `POST /api/testcases` — create one
+- `POST /api/testcases/bulk` — create many; invalid items are reported
+  individually without failing the valid ones in the same batch
+- `GET /api/testcases` — list, filterable by `project`/`suite`/`tag`/`priority`/`status`/`type`, paginated
+- `GET /api/testcases/:id` — full detail
+- `PUT /api/testcases/:id` — full replace
+- `PATCH /api/testcases/:id` — partial update
+- `DELETE /api/testcases/:id`
+
+## MCP Server (AI-assisted test case authoring)
+
+`mcp-server/` is a standalone [MCP](https://modelcontextprotocol.io) server
+that lets an AI assistant (e.g. Claude Code) create and manage test cases
+by calling the REST API above — it never touches MongoDB directly. It's
+designed for the workflow "describe a feature, get test cases written and
+saved for you": the assistant generates the test case content itself
+(steps, sample data, edge cases); the tools just validate the shape and
+persist it.
+
+Tools exposed: `create_test_case`, `bulk_create_test_cases`,
+`list_test_cases`, `get_test_case`, `update_test_case`, `delete_test_case`,
+plus two read-only analytics wrappers (`get_flaky_tests`, `get_run_summary`)
+so the assistant can cross-reference flaky CI tests against the test case
+bank.
+
+### Running it
+
+```bash
+cd mcp-server
+npm install
+cp .env.example .env   # BACKEND_API_URL, defaults to http://localhost:5000/api
+```
+
+A project-scoped `.mcp.json` at the repo root registers the server for
+Claude Code automatically (stdio transport, no manual start needed once
+the backend is running). For Claude Desktop, add the equivalent block to
+`claude_desktop_config.json` with an absolute path to `mcp-server/index.js`.
+
+To test the server standalone without an AI client:
+
+```bash
+npx @modelcontextprotocol/inspector node mcp-server/index.js
 ```
 
 ## What to say about this in an interview / resume

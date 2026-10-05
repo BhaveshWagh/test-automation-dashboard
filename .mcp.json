@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "test-automation-dashboard": {
+      "command": "node",
+      "args": ["mcp-server/index.js"],
+      "env": {
+        "BACKEND_API_URL": "http://localhost:5000/api"
+      }
+    }
+  }
+}
