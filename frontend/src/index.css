@@ -155,6 +155,72 @@ tbody tr:hover {
 .badge.skipped { color: var(--text-muted); background: rgba(137, 135, 129, 0.12); }
 .badge.skipped::before { background: var(--text-muted); }
 
+.badge.draft { color: var(--text-muted); background: rgba(137, 135, 129, 0.12); }
+.badge.draft::before { background: var(--text-muted); }
+.badge.active { color: var(--status-good); background: rgba(12, 163, 12, 0.1); }
+.badge.active::before { background: var(--status-good); }
+.badge.deprecated { color: var(--text-muted); background: rgba(137, 135, 129, 0.12); }
+.badge.deprecated::before { background: var(--text-muted); }
+
+.badge.low { color: var(--text-muted); background: rgba(137, 135, 129, 0.12); }
+.badge.low::before { background: var(--text-muted); }
+.badge.medium { color: var(--series-1); background: rgba(42, 120, 214, 0.1); }
+.badge.medium::before { background: var(--series-1); }
+.badge.high { color: var(--status-serious); background: rgba(236, 131, 90, 0.1); }
+.badge.high::before { background: var(--status-serious); }
+.badge.critical { color: var(--status-critical); background: rgba(208, 59, 59, 0.1); }
+.badge.critical::before { background: var(--status-critical); }
+
+.badge.manual { color: var(--text-muted); background: rgba(137, 135, 129, 0.12); }
+.badge.manual::before { background: var(--text-muted); }
+.badge.neutral { color: var(--text-muted); background: rgba(137, 135, 129, 0.12); }
+.badge.neutral::before { background: var(--text-muted); }
+.badge.ai-generated { color: var(--series-1); background: rgba(42, 120, 214, 0.1); }
+.badge.ai-generated::before { background: var(--series-1); }
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.filter-bar input,
+.filter-bar select {
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+.step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.step-list .step {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+}
+
+.step-list .step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--page-plane);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
 .muted { color: var(--text-secondary); font-size: 13px; }
 
 .empty-state {
