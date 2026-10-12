@@ -3,19 +3,16 @@
 # Add steps that analyze code, save build artifacts, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
 
+
 trigger:
-- main
+  - main
 
 pool:
-  vmImage: MylocalPool
+  name: MylocalPool
 
 steps:
-- task: NodeTool@0
-  inputs:
-    versionSpec: '20.x'
-  displayName: 'Install Node.js'
-
-- script: |
-    npm install
-    npm run build
-  displayName: 'npm install and build'
+  - powershell: |
+      Write-Host "Running on my self-hosted Windows agent"
+      node --version
+      npm --version
+    displayName: "Verify self-hosted agent"
