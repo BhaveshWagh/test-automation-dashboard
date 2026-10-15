@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { FlaskConical } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import PasswordInput from '../components/PasswordInput';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Login() {
   const { login } = useAuth();
@@ -27,45 +32,54 @@ export default function Login() {
   };
 
   return (
-    <div className="auth-shell">
-      <div className="card auth-card">
-        <h1>Sign in</h1>
-        <p className="muted" style={{ marginBottom: 20 }}>Test Automation Dashboard</p>
-
-        <form onSubmit={handleSubmit}>
-          <div className="form-field">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-6">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <div className="mb-1 flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <FlaskConical className="size-5" />
           </div>
-          <div className="form-field">
-            <label htmlFor="password">Password</label>
-            <PasswordInput
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+          <CardTitle className="text-lg">Sign in</CardTitle>
+          <CardDescription>Test Automation Dashboard</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Password</Label>
+              <PasswordInput
+                id="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
 
-          {error && <div className="form-error">{error}</div>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <button type="submit" className="btn-primary" disabled={submitting}>
-            {submitting ? 'Signing in...' : 'Sign in'}
-          </button>
-        </form>
+            <Button type="submit" className="w-full" disabled={submitting}>
+              {submitting ? 'Signing in...' : 'Sign in'}
+            </Button>
+          </form>
 
-        <p className="muted" style={{ marginTop: 16, marginBottom: 0 }}>
-          Don't have an account? <Link to="/register">Create one</Link>
-        </p>
-      </div>
+          <p className="mt-5 text-sm text-muted-foreground">
+            Don't have an account?{' '}
+            <Link to="/register" className="font-medium text-primary hover:underline">
+              Create one
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -21,7 +21,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Operating system files
-.DS_Store
+.DS_Store 
 Thumbs.db
 Desktop.ini
 
