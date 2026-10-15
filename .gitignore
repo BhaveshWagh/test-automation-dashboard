@@ -28,3 +28,5 @@ Desktop.ini
 # Editor and tooling state
 .vscode/
 .idea/
+
+/Explaining-My-Auth-System.md
