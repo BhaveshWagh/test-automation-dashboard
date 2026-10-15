@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { getTestCase } from '../api';
 import StatusBadge from '../components/StatusBadge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 export default function TestCaseDetail() {
   const { id } = useParams();
@@ -11,120 +15,121 @@ export default function TestCaseDetail() {
     getTestCase(id).then(setTestCase);
   }, [id]);
 
-  if (!testCase) return <div className="card empty-state">Loading test case…</div>;
+  if (!testCase) {
+    return <div className="p-8 text-center text-sm text-muted-foreground">Loading test case…</div>;
+  }
 
   return (
-    <div>
-      <Link to="/testcases" className="muted">
-        ← Back to all test cases
+    <div className="space-y-4">
+      <Link to="/testcases" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="size-4" /> Back to all test cases
       </Link>
 
-      <div className="section-title" style={{ marginTop: 16 }}>
-        Test Case Detail
-      </div>
-
-      <div className="card" style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>{testCase.title}</div>
-            <div className="muted" style={{ marginTop: 4 }}>
-              {testCase.project} / {testCase.suite} · created {new Date(testCase.createdAt).toLocaleString()} by{' '}
-              {testCase.createdBy}
+      <Card>
+        <CardContent className="p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="text-base font-semibold">{testCase.title}</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                {testCase.project} / {testCase.suite} · created {new Date(testCase.createdAt).toLocaleString()} by{' '}
+                {testCase.createdBy}
+              </div>
+            </div>
+            <div className="flex flex-wrap justify-end gap-1.5">
+              <StatusBadge status={testCase.priority} />
+              <StatusBadge status={testCase.status} />
+              <StatusBadge status={testCase.source} />
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <StatusBadge status={testCase.priority} />
-            <StatusBadge status={testCase.status} />
-            <StatusBadge status={testCase.source} />
-          </div>
-        </div>
 
-        {testCase.description && (
-          <div style={{ marginTop: 14 }}>
-            <div className="muted" style={{ fontWeight: 600 }}>
-              Description
+          {testCase.description && (
+            <div className="mt-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Description</div>
+              <div className="mt-1 text-sm">{testCase.description}</div>
             </div>
-            <div style={{ marginTop: 2 }}>{testCase.description}</div>
-          </div>
-        )}
+          )}
 
-        {testCase.preconditions && (
-          <div style={{ marginTop: 14 }}>
-            <div className="muted" style={{ fontWeight: 600 }}>
-              Preconditions
+          {testCase.preconditions && (
+            <div className="mt-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preconditions</div>
+              <div className="mt-1 text-sm">{testCase.preconditions}</div>
             </div>
-            <div style={{ marginTop: 2 }}>{testCase.preconditions}</div>
-          </div>
-        )}
+          )}
 
-        {testCase.tags?.length > 0 && (
-          <div style={{ marginTop: 14 }}>
-            <div className="muted" style={{ fontWeight: 600, marginBottom: 6 }}>
-              Tags
+          {testCase.tags?.length > 0 && (
+            <div className="mt-4">
+              <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tags</div>
+              <div className="flex flex-wrap gap-1.5">
+                {testCase.tags.map((tag) => (
+                  <Badge key={tag} variant="muted">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {testCase.tags.map((tag) => (
-                <span key={tag} className="badge neutral">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
-      <div className="section-title">Steps</div>
-      <div className="card">
-        <div className="step-list">
+      <Card>
+        <CardHeader>
+          <CardTitle>Steps</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
           {testCase.steps.map((step) => (
-            <div className="step" key={step.stepNumber}>
-              <div className="step-number">{step.stepNumber}</div>
-              <div>
+            <div className="flex gap-3" key={step.stepNumber}>
+              <div className="flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold text-muted-foreground">
+                {step.stepNumber}
+              </div>
+              <div className="text-sm">
                 <div>{step.action}</div>
-                <div className="muted" style={{ marginTop: 2 }}>
-                  Expected: {step.expectedResult}
-                </div>
+                <div className="mt-0.5 text-muted-foreground">Expected: {step.expectedResult}</div>
               </div>
             </div>
           ))}
-        </div>
 
-        {testCase.expectedResult && (
-          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--gridline)' }}>
-            <div className="muted" style={{ fontWeight: 600 }}>
-              Overall expected result
-            </div>
-            <div style={{ marginTop: 2 }}>{testCase.expectedResult}</div>
-          </div>
-        )}
-      </div>
+          {testCase.expectedResult && (
+            <>
+              <Separator />
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Overall expected result</div>
+                <div className="mt-1 text-sm">{testCase.expectedResult}</div>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {(testCase.automation?.automated || testCase.linkedTestName) && (
-        <>
-          <div className="section-title">Automation</div>
-          <div className="card">
-            <div className="muted">Automated</div>
-            <div style={{ marginBottom: 10 }}>{testCase.automation?.automated ? 'Yes' : 'No'}</div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Automation</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Automated</div>
+              <div className="mt-0.5">{testCase.automation?.automated ? 'Yes' : 'No'}</div>
+            </div>
             {testCase.automation?.framework && (
-              <>
-                <div className="muted">Framework</div>
-                <div style={{ marginBottom: 10 }}>{testCase.automation.framework}</div>
-              </>
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Framework</div>
+                <div className="mt-0.5">{testCase.automation.framework}</div>
+              </div>
             )}
             {testCase.automation?.filePath && (
-              <>
-                <div className="muted">File path</div>
-                <div style={{ marginBottom: 10 }}>{testCase.automation.filePath}</div>
-              </>
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">File path</div>
+                <div className="mt-0.5 font-mono text-xs">{testCase.automation.filePath}</div>
+              </div>
             )}
             {testCase.linkedTestName && (
-              <>
-                <div className="muted">Linked CI test name</div>
-                <div>{testCase.linkedTestName}</div>
-              </>
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Linked CI test name</div>
+                <div className="mt-0.5">{testCase.linkedTestName}</div>
+              </div>
             )}
-          </div>
-        </>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

@@ -4,6 +4,9 @@ import { getSummary, getTrend, getRuns } from '../api';
 import StatTile from '../components/StatTile';
 import TrendChart from '../components/TrendChart';
 import StatusBadge from '../components/StatusBadge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function formatDuration(ms) {
   if (!ms) return '—';
@@ -30,64 +33,76 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="card empty-state">
-        Couldn't reach the API ({error}). Make sure the backend is running on the configured port.
-      </div>
+      <Card>
+        <CardContent className="p-8 text-center text-sm text-muted-foreground">
+          Couldn't reach the API ({error}). Make sure the backend is running on the configured port.
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div>
-      <div className="stat-grid">
-        <StatTile label="Total Runs" value={summary ? summary.totalRuns : '—'} />
-        <StatTile label="Overall Pass Rate" value={summary ? `${summary.overallPassRate}%` : '—'} />
-        <StatTile label="Avg Run Duration" value={summary ? formatDuration(summary.avgDurationMs) : '—'} />
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <StatTile label="Total Runs" value={summary ? summary.totalRuns : <Skeleton className="h-8 w-16" />} />
+        <StatTile label="Overall Pass Rate" value={summary ? `${summary.overallPassRate}%` : <Skeleton className="h-8 w-16" />} />
+        <StatTile label="Avg Run Duration" value={summary ? formatDuration(summary.avgDurationMs) : <Skeleton className="h-8 w-16" />} />
         <StatTile
           label="Latest Run"
-          value={summary?.latestRun ? <StatusBadge status={summary.latestRun.status} /> : '—'}
+          value={summary?.latestRun ? <StatusBadge status={summary.latestRun.status} /> : <Skeleton className="h-8 w-16" />}
         />
       </div>
 
-      <div className="section-title">Pass Rate Trend</div>
-      <div className="card">
-        <TrendChart data={trend} />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Pass Rate Trend</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TrendChart data={trend} />
+        </CardContent>
+      </Card>
 
-      <div className="section-title">Recent Runs</div>
-      <div className="card" style={{ padding: 0 }}>
-        {recentRuns?.length ? (
-          <table>
-            <thead>
-              <tr>
-                <th>Started</th>
-                <th>Branch</th>
-                <th>Status</th>
-                <th>Pass / Fail / Skip</th>
-                <th>Duration</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentRuns.map((r) => (
-                <tr key={r._id}>
-                  <td>
-                    <Link to={`/runs/${r._id}`}>{new Date(r.startedAt).toLocaleString()}</Link>
-                  </td>
-                  <td className="muted">{r.branch}</td>
-                  <td>
-                    <StatusBadge status={r.status} />
-                  </td>
-                  <td>
-                    {r.passedCount} / {r.failedCount} / {r.skippedCount}
-                  </td>
-                  <td className="muted">{formatDuration(r.durationMs)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div className="empty-state">No runs yet.</div>
-        )}
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Runs</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {recentRuns?.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Started</TableHead>
+                  <TableHead>Branch</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Pass / Fail / Skip</TableHead>
+                  <TableHead>Duration</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentRuns.map((r) => (
+                  <TableRow key={r._id}>
+                    <TableCell>
+                      <Link to={`/runs/${r._id}`} className="font-medium text-primary hover:underline">
+                        {new Date(r.startedAt).toLocaleString()}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{r.branch}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={r.status} />
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {r.passedCount} / {r.failedCount} / {r.skippedCount}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{formatDuration(r.durationMs)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="p-8 text-center text-sm text-muted-foreground">No runs yet.</div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
