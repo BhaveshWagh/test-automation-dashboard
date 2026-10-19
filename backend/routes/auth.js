@@ -40,8 +40,9 @@ function refreshCookieOptions() {
     httpOnly: true,
     secure: process.env.COOKIE_SECURE === 'true',
     sameSite: 'strict',
-    path: REFRESH_COOKIE_PATH,
-    maxAge: REFRESH_TOKEN_TTL_MS
+    path: REFRESH_COOKIE_PATH
+    // No maxAge: a session cookie, so closing the browser requires logging in again.
+    // Server-side expiry is still enforced via RefreshToken.expiresAt.
   };
 }
 
