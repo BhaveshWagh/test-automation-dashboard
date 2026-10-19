@@ -57,6 +57,12 @@ api.interceptors.response.use(
 export const register = (name, email, password) =>
   api.post('/auth/register', { name, email, password }).then((r) => r.data);
 export const login = (email, password) => api.post('/auth/login', { email, password }).then((r) => r.data);
+export const verifyEmail = (email, otp) => api.post('/auth/verify-email', { email, otp }).then((r) => r.data);
+export const resendVerification = (email) => api.post('/auth/resend-verification', { email }).then((r) => r.data);
+export const forgotPassword = (email) => api.post('/auth/forgot-password', { email }).then((r) => r.data);
+export const verifyResetOtp = (email, otp) => api.post('/auth/verify-reset-otp', { email, otp }).then((r) => r.data);
+export const resetPassword = (resetToken, newPassword) =>
+  api.post('/auth/reset-password', { resetToken, newPassword }).then((r) => r.data);
 export const refreshSession = () => api.post('/auth/refresh').then((r) => r.data);
 export const logout = () => api.post('/auth/logout');
 export const getMe = () => api.get('/auth/me').then((r) => r.data);

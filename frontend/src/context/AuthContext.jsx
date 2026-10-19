@@ -1,5 +1,12 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { login as loginRequest, logout as logoutRequest, refreshSession, getMe, setAccessToken } from '../api';
+import {
+  login as loginRequest,
+  logout as logoutRequest,
+  verifyEmail as verifyEmailRequest,
+  refreshSession,
+  getMe,
+  setAccessToken
+} from '../api';
 
 const AuthContext = createContext(null);
 
@@ -32,6 +39,14 @@ export function AuthProvider({ children }) {
     setStatus('authenticated');
   }, []);
 
+  // Confirms the emailed code; the server starts the session on success.
+  const verifyEmail = useCallback(async (email, otp) => {
+    const { user: me, accessToken } = await verifyEmailRequest(email, otp);
+    setAccessToken(accessToken);
+    setUser(me);
+    setStatus('authenticated');
+  }, []);
+
   const logout = useCallback(async () => {
     await logoutRequest().catch(() => {});
     setAccessToken(null);
@@ -39,7 +54,7 @@ export function AuthProvider({ children }) {
     setStatus('anonymous');
   }, []);
 
-  return <AuthContext.Provider value={{ user, status, login, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, status, login, verifyEmail, logout }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

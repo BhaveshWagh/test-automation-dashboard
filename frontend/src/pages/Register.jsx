@@ -22,9 +22,9 @@ export default function Register() {
     setError('');
     setSubmitting(true);
     try {
-      await register(name, email, password);
-      toast.success('Account created. Sign in to continue.');
-      navigate('/login', { replace: true });
+      const data = await register(name, email, password);
+      toast.success('Account created. Check your email for a verification code.');
+      navigate('/verify-email', { replace: true, state: { email: data.email || email } });
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create account');
     } finally {
