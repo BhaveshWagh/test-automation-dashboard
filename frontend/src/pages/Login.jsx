@@ -25,6 +25,11 @@ export default function Login() {
       await login(email, password);
       navigate(location.state?.from?.pathname || '/', { replace: true });
     } catch (err) {
+      if (err.response?.data?.code === 'EMAIL_NOT_VERIFIED') {
+        // The server just emailed a fresh code; continue on the verification screen.
+        navigate('/verify-email', { state: { email: err.response.data.email || email } });
+        return;
+      }
       setError(err.response?.data?.error || 'Failed to log in');
     } finally {
       setSubmitting(false);
@@ -55,7 +60,12 @@ export default function Login() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link to="/forgot-password" className="text-xs font-medium text-primary hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
               <PasswordInput
                 id="password"
                 autoComplete="current-password"
