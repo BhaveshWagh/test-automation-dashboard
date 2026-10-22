@@ -19,13 +19,6 @@ export default function FlakyTests() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold">Flaky Tests</h2>
-        <p className="text-sm text-muted-foreground">
-          Tests that have both passed and failed across the last 20 runs, ranked by how evenly they flip.
-        </p>
-      </div>
-
       <Card>
         <CardContent className="p-0">
           {pageItems.length ? (

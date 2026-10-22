@@ -17,6 +17,7 @@ const VARIANT_BY_STATUS = {
   deprecated: 'muted',
   // test case source
   manual: 'muted',
+  cucumber: 'success',
   'ai-generated': 'default'
 };
 
