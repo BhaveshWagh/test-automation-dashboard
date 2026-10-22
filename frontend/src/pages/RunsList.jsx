@@ -3,16 +3,30 @@ import { Link } from 'react-router-dom';
 import { getRuns } from '../api';
 import StatusBadge from '../components/StatusBadge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
 import TablePagination from '../components/table-pagination';
+import SortableHead from '../components/sortable-head';
+import { useSort } from '@/hooks/use-sort';
 
 export default function RunsList() {
   const [data, setData] = useState(null);
   const [page, setPage] = useState(1);
+  const { sort, toggle } = useSort();
+
+  // A new sort order starts again from the first page.
+  useEffect(() => {
+    setPage(1);
+  }, [sort]);
 
   useEffect(() => {
-    getRuns(page, 15).then(setData);
-  }, [page]);
+    let cancelled = false;
+    getRuns(page, 15, undefined, sort?.field, sort?.order).then((d) => {
+      if (!cancelled) setData(d);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [page, sort]);
 
   const totalPages = data ? Math.ceil(data.total / data.limit) : 1;
 
@@ -24,13 +38,13 @@ export default function RunsList() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Run</TableHead>
-                  <TableHead>Started</TableHead>
-                  <TableHead>Branch</TableHead>
-                  <TableHead>Framework</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Pass / Fail / Skip</TableHead>
+                  <SortableHead field="runId" label="Run" sort={sort} onSort={toggle} />
+                  <SortableHead field="startedAt" label="Started" sort={sort} onSort={toggle} />
+                  <SortableHead field="branch" label="Branch" sort={sort} onSort={toggle} />
+                  <SortableHead field="framework" label="Framework" sort={sort} onSort={toggle} />
+                  <SortableHead field="status" label="Status" sort={sort} onSort={toggle} />
+                  <SortableHead field="totalTests" label="Total" sort={sort} onSort={toggle} />
+                  <SortableHead field="passedCount" label="Pass / Fail / Skip" sort={sort} onSort={toggle} />
                 </TableRow>
               </TableHeader>
               <TableBody>

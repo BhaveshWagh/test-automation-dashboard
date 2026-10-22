@@ -4,18 +4,30 @@ import { ArrowLeft } from 'lucide-react';
 import { getRun } from '../api';
 import StatusBadge from '../components/StatusBadge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
 import TablePagination from '../components/table-pagination';
+import SortableHead from '../components/sortable-head';
+import { useSort } from '@/hooks/use-sort';
+import { sortRows, RESULT_STATUS_RANK } from '@/lib/sort';
 import { cn } from '@/lib/utils';
 
 const FILTERS = ['all', 'passed', 'failed', 'skipped'];
 const PAGE_SIZE = 10;
+
+const RESULT_SORT = {
+  name: (t) => t.name,
+  suite: (t) => t.suite,
+  status: (t) => RESULT_STATUS_RANK[t.status],
+  durationMs: (t) => t.durationMs,
+  errorMessage: (t) => t.errorMessage
+};
 
 export default function RunDetail() {
   const { id } = useParams();
   const [run, setRun] = useState(null);
   const [filter, setFilter] = useState('all');
   const [page, setPage] = useState(1);
+  const { sort, toggle } = useSort();
 
   useEffect(() => {
     getRun(id).then(setRun);
@@ -23,15 +35,16 @@ export default function RunDetail() {
 
   useEffect(() => {
     setPage(1);
-  }, [filter]);
+  }, [filter, sort]);
 
   if (!run) {
     return <div className="p-8 text-center text-sm text-muted-foreground">Loading run…</div>;
   }
 
   const filteredCases = filter === 'all' ? run.testCases : run.testCases.filter((t) => t.status === filter);
-  const totalPages = Math.max(1, Math.ceil(filteredCases.length / PAGE_SIZE));
-  const testCases = filteredCases.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const sortedCases = sortRows(filteredCases, sort, RESULT_SORT);
+  const totalPages = Math.max(1, Math.ceil(sortedCases.length / PAGE_SIZE));
+  const testCases = sortedCases.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="space-y-4">
@@ -72,11 +85,11 @@ export default function RunDetail() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Test</TableHead>
-                <TableHead>Suite</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Error</TableHead>
+                <SortableHead field="name" label="Test" sort={sort} onSort={toggle} />
+                <SortableHead field="suite" label="Suite" sort={sort} onSort={toggle} />
+                <SortableHead field="status" label="Status" sort={sort} onSort={toggle} />
+                <SortableHead field="durationMs" label="Duration" sort={sort} onSort={toggle} />
+                <SortableHead field="errorMessage" label="Error" sort={sort} onSort={toggle} />
               </TableRow>
             </TableHeader>
             <TableBody>

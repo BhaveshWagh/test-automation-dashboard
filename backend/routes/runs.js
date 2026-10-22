@@ -3,6 +3,18 @@ const router = express.Router();
 const TestRun = require('../models/TestRun');
 const Counter = require('../models/Counter');
 const { formatId, idFilter } = require('../utils/ids');
+const { COLLATION, rank, parseSort, sortStages } = require('../utils/sortQuery');
+
+// Columns the Runs table can sort by. Status sorts by severity (passed < mixed < failed), not alphabetically.
+const RUN_SORT = {
+  runId: ['$runId'],
+  startedAt: ['$startedAt'],
+  branch: ['$branch'],
+  framework: ['$framework'],
+  status: [rank('status', ['passed', 'mixed', 'failed'])],
+  totalTests: ['$totalTests'],
+  passedCount: ['$passedCount', '$failedCount']
+};
 
 // POST /api/runs - ingest a new test run
 // Body shape matches what a CI job or the seed script would send:
@@ -49,11 +61,27 @@ router.get('/', async (req, res) => {
   try {
     const { limit = 20, page = 1, project } = req.query;
     const filter = project ? { project } : {};
-    const runs = await TestRun.find(filter)
-      .sort({ startedAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(Number(limit))
-      .select('-testCases'); // omit heavy array in list view
+
+    const { sort, error } = parseSort(req.query, RUN_SORT);
+    if (error) return res.status(400).json({ error });
+
+    let runs;
+    if (sort) {
+      const { stages, cleanup } = sortStages(sort);
+      runs = await TestRun.aggregate([
+        { $match: filter },
+        ...stages,
+        { $skip: (page - 1) * Number(limit) },
+        { $limit: Number(limit) },
+        { $project: { testCases: 0, ...Object.fromEntries(cleanup.map((k) => [k, 0])) } } // omit heavy array in list view
+      ]).collation(COLLATION);
+    } else {
+      runs = await TestRun.find(filter)
+        .sort({ startedAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(Number(limit))
+        .select('-testCases'); // omit heavy array in list view
+    }
 
     const total = await TestRun.countDocuments(filter);
     res.json({ runs, total, page: Number(page), limit: Number(limit) });

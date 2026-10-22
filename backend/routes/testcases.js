@@ -6,6 +6,20 @@ const Counter = require('../models/Counter');
 const User = require('../models/User');
 const { validateGherkin } = require('../utils/gherkin');
 const { formatId, idFilter } = require('../utils/ids');
+const { COLLATION, rank, parseSort, sortStages } = require('../utils/sortQuery');
+
+// Columns the Test Cases table can sort by. Priority and status sort by their natural order, not alphabetically.
+const TESTCASE_SORT = {
+  testCaseId: ['$testCaseId'],
+  title: ['$title'],
+  format: [{ $ifNull: ['$format', 'manual'] }],
+  project: ['$project', '$suite'],
+  priority: [rank('priority', ['low', 'medium', 'high', 'critical'])],
+  status: [rank('status', ['draft', 'active', 'deprecated'])],
+  source: ['$source'],
+  tags: [{ $ifNull: [{ $arrayElemAt: ['$tags', 0] }, ''] }],
+  createdAt: ['$createdAt']
+};
 
 const TestStepZ = z.object({
   stepNumber: z.number().int().positive(),
@@ -152,16 +166,32 @@ router.get('/', async (req, res) => {
     if (status) filter.status = status;
     if (type) filter.type = type;
     if (source) filter.source = source;
-    if (format) filter.format = format;
+    // Older test cases have no stored format and are manual, so "manual" must match them too (null matches missing).
+    if (format) filter.format = format === 'manual' ? { $in: ['manual', null] } : format;
     if (q) {
       const pattern = new RegExp(String(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       filter.$or = [{ title: pattern }, { testCaseId: pattern }];
     }
 
-    const testCases = await TestCase.find(filter)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(Number(limit));
+    const { sort, error } = parseSort(req.query, TESTCASE_SORT);
+    if (error) return res.status(400).json({ error });
+
+    let testCases;
+    if (sort) {
+      const { stages, cleanup } = sortStages(sort);
+      testCases = await TestCase.aggregate([
+        { $match: filter },
+        ...stages,
+        { $skip: (page - 1) * Number(limit) },
+        { $limit: Number(limit) },
+        { $project: Object.fromEntries(cleanup.map((k) => [k, 0])) }
+      ]).collation(COLLATION);
+    } else {
+      testCases = await TestCase.find(filter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(Number(limit));
+    }
 
     const total = await TestCase.countDocuments(filter);
     res.json({ testCases, total, page: Number(page), limit: Number(limit) });
