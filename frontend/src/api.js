@@ -70,8 +70,8 @@ export const getMe = () => api.get('/auth/me').then((r) => r.data);
 export const getSummary = (project) => api.get('/analytics/summary', { params: { project } }).then((r) => r.data);
 export const getTrend = (project, limit = 30) => api.get('/analytics/trend', { params: { project, limit } }).then((r) => r.data);
 export const getFlaky = (project) => api.get('/analytics/flaky', { params: { project } }).then((r) => r.data);
-export const getRuns = (page = 1, limit = 15, project) =>
-  api.get('/runs', { params: { page, limit, project } }).then((r) => r.data);
+export const getRuns = (page = 1, limit = 15, project, sortBy, order) =>
+  api.get('/runs', { params: { page, limit, project, sortBy, order } }).then((r) => r.data);
 export const getRun = (id) => api.get(`/runs/${id}`).then((r) => r.data);
 
 export const getTestCases = (params = {}) => api.get('/testcases', { params }).then((r) => r.data);

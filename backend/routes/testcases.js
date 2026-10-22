@@ -5,6 +5,21 @@ const TestCase = require('../models/TestCase');
 const Counter = require('../models/Counter');
 const User = require('../models/User');
 const { validateGherkin } = require('../utils/gherkin');
+const { formatId, idFilter } = require('../utils/ids');
+const { COLLATION, rank, parseSort, sortStages } = require('../utils/sortQuery');
+
+// Columns the Test Cases table can sort by. Priority and status sort by their natural order, not alphabetically.
+const TESTCASE_SORT = {
+  testCaseId: ['$testCaseId'],
+  title: ['$title'],
+  format: [{ $ifNull: ['$format', 'manual'] }],
+  project: ['$project', '$suite'],
+  priority: [rank('priority', ['low', 'medium', 'high', 'critical'])],
+  status: [rank('status', ['draft', 'active', 'deprecated'])],
+  source: ['$source'],
+  tags: [{ $ifNull: [{ $arrayElemAt: ['$tags', 0] }, ''] }],
+  createdAt: ['$createdAt']
+};
 
 const TestStepZ = z.object({
   stepNumber: z.number().int().positive(),
@@ -60,16 +75,12 @@ function formatZodError(zodError) {
   return zodError.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message }));
 }
 
-function formatTestCaseId(n) {
-  return `TC-${String(n).padStart(4, '0')}`;
-}
-
 // Gives every item a unique testCaseId. The numbers are reserved in one atomic counter update,
 // so simultaneous creations (any number of users) can never receive the same ID.
 async function withTestCaseIds(items) {
   if (items.length === 0) return items;
   const first = await Counter.reserve('testcase', items.length);
-  return items.map((item, i) => ({ ...item, testCaseId: formatTestCaseId(first + i) }));
+  return items.map((item, i) => ({ ...item, testCaseId: formatId('TC', first + i) }));
 }
 
 // Who created it: an explicit createdBy (e.g. MCP) wins, otherwise the signed-in user's name.
@@ -155,16 +166,32 @@ router.get('/', async (req, res) => {
     if (status) filter.status = status;
     if (type) filter.type = type;
     if (source) filter.source = source;
-    if (format) filter.format = format;
+    // Older test cases have no stored format and are manual, so "manual" must match them too (null matches missing).
+    if (format) filter.format = format === 'manual' ? { $in: ['manual', null] } : format;
     if (q) {
       const pattern = new RegExp(String(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       filter.$or = [{ title: pattern }, { testCaseId: pattern }];
     }
 
-    const testCases = await TestCase.find(filter)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(Number(limit));
+    const { sort, error } = parseSort(req.query, TESTCASE_SORT);
+    if (error) return res.status(400).json({ error });
+
+    let testCases;
+    if (sort) {
+      const { stages, cleanup } = sortStages(sort);
+      testCases = await TestCase.aggregate([
+        { $match: filter },
+        ...stages,
+        { $skip: (page - 1) * Number(limit) },
+        { $limit: Number(limit) },
+        { $project: Object.fromEntries(cleanup.map((k) => [k, 0])) }
+      ]).collation(COLLATION);
+    } else {
+      testCases = await TestCase.find(filter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(Number(limit));
+    }
 
     const total = await TestCase.countDocuments(filter);
     res.json({ testCases, total, page: Number(page), limit: Number(limit) });
@@ -173,10 +200,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/testcases/:id - full detail of one test case
+// GET /api/testcases/:id - full detail of one test case. :id is a test case ID (TC-0001) or a Mongo _id.
 router.get('/:id', async (req, res) => {
   try {
-    const testCase = await TestCase.findById(req.params.id);
+    const testCase = await TestCase.findOne(idFilter(req.params.id, 'testCaseId'));
     if (!testCase) return res.status(404).json({ error: 'Test case not found' });
     res.json(testCase);
   } catch (err) {
@@ -193,11 +220,11 @@ router.put('/:id', async (req, res) => {
 
   try {
     // A replace would drop the assigned ID, so carry it over.
-    const existing = await TestCase.findById(req.params.id).select('testCaseId');
+    const existing = await TestCase.findOne(idFilter(req.params.id, 'testCaseId')).select('testCaseId');
     if (!existing) return res.status(404).json({ error: 'Test case not found' });
     const replacement = existing.testCaseId ? { ...parsed.data, testCaseId: existing.testCaseId } : parsed.data;
 
-    const testCase = await TestCase.findOneAndReplace({ _id: req.params.id }, replacement, {
+    const testCase = await TestCase.findOneAndReplace({ _id: existing._id }, replacement, {
       new: true,
       runValidators: true
     });
@@ -228,8 +255,8 @@ router.patch('/:id', async (req, res) => {
   }
 
   try {
-    const testCase = await TestCase.findByIdAndUpdate(
-      req.params.id,
+    const testCase = await TestCase.findOneAndUpdate(
+      idFilter(req.params.id, 'testCaseId'),
       { $set: parsed.data },
       { new: true, runValidators: true }
     );
@@ -243,7 +270,7 @@ router.patch('/:id', async (req, res) => {
 // DELETE /api/testcases/:id
 router.delete('/:id', async (req, res) => {
   try {
-    const testCase = await TestCase.findByIdAndDelete(req.params.id);
+    const testCase = await TestCase.findOneAndDelete(idFilter(req.params.id, 'testCaseId'));
     if (!testCase) return res.status(404).json({ error: 'Test case not found' });
     res.json({ message: 'Deleted', id: req.params.id });
   } catch (err) {

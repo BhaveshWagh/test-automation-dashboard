@@ -5,8 +5,11 @@ import StatTile from '../components/StatTile';
 import TrendChart from '../components/TrendChart';
 import StatusBadge from '../components/StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import SortableHead from '../components/sortable-head';
+import { useSort } from '@/hooks/use-sort';
+import { sortRows, RUN_STATUS_RANK } from '@/lib/sort';
 
 function formatDuration(ms) {
   if (!ms) return '—';
@@ -15,7 +18,16 @@ function formatDuration(ms) {
   return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
 }
 
+const RUN_SORT = {
+  startedAt: (r) => new Date(r.startedAt).getTime(),
+  branch: (r) => r.branch,
+  status: (r) => RUN_STATUS_RANK[r.status],
+  passedCount: (r) => r.passedCount,
+  durationMs: (r) => r.durationMs
+};
+
 export default function Dashboard() {
+  const { sort, toggle } = useSort();
   const [summary, setSummary] = useState(null);
   const [trend, setTrend] = useState(null);
   const [recentRuns, setRecentRuns] = useState(null);
@@ -71,18 +83,18 @@ export default function Dashboard() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Started</TableHead>
-                  <TableHead>Branch</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Pass / Fail / Skip</TableHead>
-                  <TableHead>Duration</TableHead>
+                  <SortableHead field="startedAt" label="Started" sort={sort} onSort={toggle} />
+                  <SortableHead field="branch" label="Branch" sort={sort} onSort={toggle} />
+                  <SortableHead field="status" label="Status" sort={sort} onSort={toggle} />
+                  <SortableHead field="passedCount" label="Pass / Fail / Skip" sort={sort} onSort={toggle} />
+                  <SortableHead field="durationMs" label="Duration" sort={sort} onSort={toggle} />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentRuns.map((r) => (
+                {sortRows(recentRuns, sort, RUN_SORT).map((r) => (
                   <TableRow key={r._id}>
                     <TableCell>
-                      <Link to={`/runs/${r._id}`} className="font-medium text-primary hover:underline">
+                      <Link to={`/runs/${r.runId || r._id}`} className="font-medium text-primary hover:underline">
                         {new Date(r.startedAt).toLocaleString()}
                       </Link>
                     </TableCell>

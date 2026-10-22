@@ -63,7 +63,7 @@ export default function TestCaseDetail() {
             <StatusBadge status={testCase.priority} />
             <StatusBadge status={testCase.status} />
             <Button asChild variant="outline" size="sm" className="ml-1">
-              <Link to={`/testcases/${testCase._id}/edit`}>
+              <Link to={`/testcases/${testCase.testCaseId || testCase._id}/edit`}>
                 <Pencil /> Edit
               </Link>
             </Button>

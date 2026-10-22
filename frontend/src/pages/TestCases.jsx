@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import { getTestCases } from '../api';
 import StatusBadge from '../components/StatusBadge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TablePagination from '../components/table-pagination';
+import SortableHead from '../components/sortable-head';
+import { useSort } from '@/hooks/use-sort';
 
 const ALL = '__all__';
 
@@ -37,12 +39,14 @@ export default function TestCases() {
   const [format, setFormat] = useState('');
   const [priority, setPriority] = useState('');
   const [status, setStatus] = useState('');
+  const { sort, toggle } = useSort();
 
   useEffect(() => {
     setPage(1);
-  }, [project, suite, source, format, priority, status]);
+  }, [project, suite, source, format, priority, status, sort]);
 
   useEffect(() => {
+    let cancelled = false;
     getTestCases({
       page,
       limit: 15,
@@ -51,9 +55,16 @@ export default function TestCases() {
       source: source || undefined,
       format: format || undefined,
       priority: priority || undefined,
-      status: status || undefined
-    }).then(setData);
-  }, [page, project, suite, source, format, priority, status]);
+      status: status || undefined,
+      sortBy: sort?.field,
+      order: sort?.order
+    }).then((d) => {
+      if (!cancelled) setData(d);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [page, project, suite, source, format, priority, status, sort]);
 
   const totalPages = data ? Math.ceil(data.total / data.limit) : 1;
 
@@ -109,15 +120,15 @@ export default function TestCases() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Format</TableHead>
-                  <TableHead>Project / Suite</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Tags</TableHead>
-                  <TableHead>Created</TableHead>
+                  <SortableHead field="testCaseId" label="ID" sort={sort} onSort={toggle} />
+                  <SortableHead field="title" label="Title" sort={sort} onSort={toggle} />
+                  <SortableHead field="format" label="Format" sort={sort} onSort={toggle} />
+                  <SortableHead field="project" label="Project / Suite" sort={sort} onSort={toggle} />
+                  <SortableHead field="priority" label="Priority" sort={sort} onSort={toggle} />
+                  <SortableHead field="status" label="Status" sort={sort} onSort={toggle} />
+                  <SortableHead field="source" label="Source" sort={sort} onSort={toggle} />
+                  <SortableHead field="tags" label="Tags" sort={sort} onSort={toggle} />
+                  <SortableHead field="createdAt" label="Created" sort={sort} onSort={toggle} />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -127,7 +138,7 @@ export default function TestCases() {
                       {tc.testCaseId || '—'}
                     </TableCell>
                     <TableCell>
-                      <Link to={`/testcases/${tc._id}`} className="font-medium text-primary hover:underline">
+                      <Link to={`/testcases/${tc.testCaseId || tc._id}`} className="font-medium text-primary hover:underline">
                         {tc.title}
                       </Link>
                     </TableCell>
