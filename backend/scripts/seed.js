@@ -8,6 +8,8 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const TestRun = require('../models/TestRun');
+const Counter = require('../models/Counter');
+const { formatId } = require('../utils/ids');
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/test_automation_dashboard';
 
@@ -64,6 +66,7 @@ async function seed() {
   await mongoose.connect(MONGO_URI);
   console.log('Connected to MongoDB, clearing existing runs...');
   await TestRun.deleteMany({});
+  await Counter.deleteOne({ _id: 'run' }); // all runs are gone, so run IDs restart at RUN-0001
 
   const NUM_RUNS = 40;
   const now = Date.now();
@@ -99,6 +102,12 @@ async function seed() {
       testCases
     });
   }
+
+  // Oldest run first (the loop above builds them oldest to newest), so RUN-0001 is the oldest.
+  const firstRunNumber = await Counter.reserve('run', runs.length);
+  runs.forEach((run, i) => {
+    run.runId = formatId('RUN', firstRunNumber + i);
+  });
 
   await TestRun.insertMany(runs);
   console.log(`Seeded ${runs.length} test runs.`);

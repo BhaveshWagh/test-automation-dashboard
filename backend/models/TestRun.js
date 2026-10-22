@@ -14,6 +14,8 @@ const TestCaseResultSchema = new mongoose.Schema(
 
 const TestRunSchema = new mongoose.Schema(
   {
+    // Human-readable ID (RUN-0001), assigned on creation. Used in URLs instead of the Mongo _id.
+    runId: { type: String, trim: true },
     project: { type: String, required: true, default: 'default-project' },
     branch: { type: String, required: true, default: 'main' },
     triggeredBy: { type: String, default: 'manual' }, // e.g. 'ci', 'manual', github username
@@ -31,6 +33,7 @@ const TestRunSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+TestRunSchema.index({ runId: 1 }, { unique: true, partialFilterExpression: { runId: { $type: 'string' } } });
 TestRunSchema.index({ startedAt: -1 });
 TestRunSchema.index({ project: 1, startedAt: -1 });
 

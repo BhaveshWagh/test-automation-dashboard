@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const TestRun = require('../models/TestRun');
+const Counter = require('../models/Counter');
+const { formatId, idFilter } = require('../utils/ids');
 
 // POST /api/runs - ingest a new test run
 // Body shape matches what a CI job or the seed script would send:
@@ -20,8 +22,12 @@ router.post('/', async (req, res) => {
     let status = 'passed';
     if (failedCount > 0) status = failedCount === testCases.length ? 'failed' : 'mixed';
 
+    // Atomic counter: simultaneous ingests can never receive the same run ID.
+    const runId = formatId('RUN', await Counter.reserve('run', 1));
+
     const run = new TestRun({
       ...req.body,
+      runId,
       totalTests: testCases.length,
       passedCount,
       failedCount,
@@ -56,10 +62,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/runs/:id - full detail of one run, including all test cases
+// GET /api/runs/:id - full detail of one run, including all test cases. :id is a run ID (RUN-0001) or a Mongo _id.
 router.get('/:id', async (req, res) => {
   try {
-    const run = await TestRun.findById(req.params.id);
+    const run = await TestRun.findOne(idFilter(req.params.id, 'runId'));
     if (!run) return res.status(404).json({ error: 'Run not found' });
     res.json(run);
   } catch (err) {

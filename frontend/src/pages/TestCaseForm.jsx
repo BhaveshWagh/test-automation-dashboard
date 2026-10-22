@@ -238,7 +238,7 @@ export default function TestCaseForm() {
       } else {
         const created = await createTestCase(buildPayload());
         toast.success(`Test case ${created.testCaseId || ''} created`.replace('  ', ' '));
-        navigate(`/testcases/${created._id}`, { replace: true });
+        navigate(`/testcases/${created.testCaseId || created._id}`, { replace: true });
       }
     } catch (err) {
       const details = err.response?.data?.details;

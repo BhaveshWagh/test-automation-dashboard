@@ -127,7 +127,7 @@ export default function TestCases() {
                       {tc.testCaseId || '—'}
                     </TableCell>
                     <TableCell>
-                      <Link to={`/testcases/${tc._id}`} className="font-medium text-primary hover:underline">
+                      <Link to={`/testcases/${tc.testCaseId || tc._id}`} className="font-medium text-primary hover:underline">
                         {tc.title}
                       </Link>
                     </TableCell>

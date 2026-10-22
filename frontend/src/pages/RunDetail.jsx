@@ -42,6 +42,7 @@ export default function RunDetail() {
       <Card>
         <CardContent className="flex items-center justify-between p-5">
           <div>
+            {run.runId && <div className="font-mono text-xs text-muted-foreground">{run.runId}</div>}
             <div className="text-base font-semibold">{new Date(run.startedAt).toLocaleString()}</div>
             <div className="text-sm text-muted-foreground">
               {run.project} · {run.branch} · {run.framework}

@@ -82,7 +82,7 @@ export default function Dashboard() {
                 {recentRuns.map((r) => (
                   <TableRow key={r._id}>
                     <TableCell>
-                      <Link to={`/runs/${r._id}`} className="font-medium text-primary hover:underline">
+                      <Link to={`/runs/${r.runId || r._id}`} className="font-medium text-primary hover:underline">
                         {new Date(r.startedAt).toLocaleString()}
                       </Link>
                     </TableCell>

@@ -24,6 +24,7 @@ export default function RunsList() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Run</TableHead>
                   <TableHead>Started</TableHead>
                   <TableHead>Branch</TableHead>
                   <TableHead>Framework</TableHead>
@@ -35,8 +36,9 @@ export default function RunsList() {
               <TableBody>
                 {data.runs.map((r) => (
                   <TableRow key={r._id}>
+                    <TableCell className="whitespace-nowrap font-mono text-xs text-muted-foreground">{r.runId || '—'}</TableCell>
                     <TableCell>
-                      <Link to={`/runs/${r._id}`} className="font-medium text-primary hover:underline">
+                      <Link to={`/runs/${r.runId || r._id}`} className="font-medium text-primary hover:underline">
                         {new Date(r.startedAt).toLocaleString()}
                       </Link>
                     </TableCell>
