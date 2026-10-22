@@ -4,7 +4,6 @@ import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import ThemeToggle from '@/components/theme-toggle';
 
 export const NAV_ITEMS = [
@@ -29,14 +28,13 @@ export default function AppSidebar({ onNavigate, className }) {
 
   return (
     <div className={cn('flex h-full flex-col bg-sidebar text-sidebar-foreground', className)}>
-      <div className="flex h-14 items-center gap-2 px-4">
+      {/* Same height and border technique as the page header so both lines render identically at any zoom. */}
+      <div className="flex h-[57px] shrink-0 items-center gap-2 border-b border-sidebar-border px-4">
         <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <FlaskConical className="size-4" />
         </div>
         <span className="text-sm font-semibold">Test Automation</span>
       </div>
-
-      <Separator className="bg-sidebar-border" />
 
       <nav className="flex-1 space-y-1 p-3">
         {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
@@ -60,9 +58,7 @@ export default function AppSidebar({ onNavigate, className }) {
         ))}
       </nav>
 
-      <Separator className="bg-sidebar-border" />
-
-      <div className="flex items-center gap-2 p-3">
+      <div className="flex items-center gap-2 border-t border-sidebar-border p-3">
         <Avatar className="size-8">
           <AvatarFallback>{initials(user?.name)}</AvatarFallback>
         </Avatar>

@@ -2,6 +2,9 @@ const express = require('express');
 const { z } = require('zod');
 const router = express.Router();
 const TestCase = require('../models/TestCase');
+const Counter = require('../models/Counter');
+const User = require('../models/User');
+const { validateGherkin } = require('../utils/gherkin');
 
 const TestStepZ = z.object({
   stepNumber: z.number().int().positive(),
@@ -9,11 +12,17 @@ const TestStepZ = z.object({
   expectedResult: z.string().min(1)
 });
 
-const TestCaseCreateZ = z.object({
-  title: z.string().min(1),
+const TestCaseBaseZ = z.object({
+  title: z.string().trim().min(1, 'Test case name is required').max(200),
+  scenario: z.string().max(1000).optional(),
   description: z.string().optional(),
   preconditions: z.string().optional(),
-  steps: z.array(TestStepZ).min(1, 'At least one step is required'),
+  testData: z.string().optional(),
+  postconditions: z.string().optional(),
+  requirementRef: z.string().max(200).optional(),
+  format: z.enum(['manual', 'cucumber']).optional(),
+  gherkin: z.string().optional(),
+  steps: z.array(TestStepZ).optional(),
   expectedResult: z.string().optional(),
   priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
   type: z.enum(['functional', 'regression', 'smoke', 'e2e', 'integration', 'api']).optional(),
@@ -33,10 +42,41 @@ const TestCaseCreateZ = z.object({
   createdBy: z.string().optional()
 });
 
-const TestCaseUpdateZ = TestCaseCreateZ.partial();
+// A manual test case needs steps; a cucumber one needs valid Gherkin instead.
+function requireFormatContent(data, ctx) {
+  const format = data.format ?? 'manual';
+  if (format === 'cucumber') {
+    const result = validateGherkin(data.gherkin);
+    result.errors.forEach((message) => ctx.addIssue({ code: 'custom', path: ['gherkin'], message }));
+  } else if (!data.steps || data.steps.length === 0) {
+    ctx.addIssue({ code: 'custom', path: ['steps'], message: 'At least one step is required' });
+  }
+}
+
+const TestCaseCreateZ = TestCaseBaseZ.superRefine(requireFormatContent);
+const TestCaseUpdateZ = TestCaseBaseZ.partial();
 
 function formatZodError(zodError) {
   return zodError.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message }));
+}
+
+function formatTestCaseId(n) {
+  return `TC-${String(n).padStart(4, '0')}`;
+}
+
+// Gives every item a unique testCaseId. The numbers are reserved in one atomic counter update,
+// so simultaneous creations (any number of users) can never receive the same ID.
+async function withTestCaseIds(items) {
+  if (items.length === 0) return items;
+  const first = await Counter.reserve('testcase', items.length);
+  return items.map((item, i) => ({ ...item, testCaseId: formatTestCaseId(first + i) }));
+}
+
+// Who created it: an explicit createdBy (e.g. MCP) wins, otherwise the signed-in user's name.
+async function resolveCreator(req, explicit) {
+  if (explicit) return explicit;
+  const user = await User.findById(req.user?.id).select('name').catch(() => null);
+  return user?.name || 'unknown';
 }
 
 // POST /api/testcases - create one test case
@@ -47,7 +87,10 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const testCase = new TestCase(parsed.data);
+    const [data] = await withTestCaseIds([
+      { ...parsed.data, createdBy: await resolveCreator(req, parsed.data.createdBy) }
+    ]);
+    const testCase = new TestCase(data);
     await testCase.save();
     res.status(201).json(testCase);
   } catch (err) {
@@ -78,9 +121,8 @@ router.post('/bulk', async (req, res) => {
   });
 
   try {
-    const created = validItems.length
-      ? await TestCase.insertMany(validItems, { ordered: false })
-      : [];
+    const withIds = await withTestCaseIds(validItems);
+    const created = withIds.length ? await TestCase.insertMany(withIds, { ordered: false }) : [];
 
     res.status(201).json({
       created,
@@ -94,10 +136,16 @@ router.post('/bulk', async (req, res) => {
   }
 });
 
+// POST /api/testcases/validate-gherkin - lets the UI check a feature file before saving
+router.post('/validate-gherkin', (req, res) => {
+  const { ok, errors, featureName, scenarios } = validateGherkin(req.body?.gherkin);
+  res.json({ ok, errors, featureName, scenarioCount: scenarios.length });
+});
+
 // GET /api/testcases - list, filterable and paginated
 router.get('/', async (req, res) => {
   try {
-    const { project, suite, tag, priority, status, type, source, page = 1, limit = 20 } = req.query;
+    const { project, suite, tag, priority, status, type, source, format, q, page = 1, limit = 20 } = req.query;
 
     const filter = {};
     if (project) filter.project = project;
@@ -107,6 +155,11 @@ router.get('/', async (req, res) => {
     if (status) filter.status = status;
     if (type) filter.type = type;
     if (source) filter.source = source;
+    if (format) filter.format = format;
+    if (q) {
+      const pattern = new RegExp(String(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [{ title: pattern }, { testCaseId: pattern }];
+    }
 
     const testCases = await TestCase.find(filter)
       .sort({ createdAt: -1 })
@@ -139,7 +192,12 @@ router.put('/:id', async (req, res) => {
   }
 
   try {
-    const testCase = await TestCase.findOneAndReplace({ _id: req.params.id }, parsed.data, {
+    // A replace would drop the assigned ID, so carry it over.
+    const existing = await TestCase.findById(req.params.id).select('testCaseId');
+    if (!existing) return res.status(404).json({ error: 'Test case not found' });
+    const replacement = existing.testCaseId ? { ...parsed.data, testCaseId: existing.testCaseId } : parsed.data;
+
+    const testCase = await TestCase.findOneAndReplace({ _id: req.params.id }, replacement, {
       new: true,
       runValidators: true
     });
@@ -158,6 +216,15 @@ router.patch('/:id', async (req, res) => {
   }
   if (Object.keys(parsed.data).length === 0) {
     return res.status(400).json({ error: 'At least one field is required' });
+  }
+  if (parsed.data.gherkin !== undefined) {
+    const result = validateGherkin(parsed.data.gherkin);
+    if (!result.ok) {
+      return res.status(400).json({
+        error: 'Invalid test case',
+        details: result.errors.map((message) => ({ path: 'gherkin', message }))
+      });
+    }
   }
 
   try {

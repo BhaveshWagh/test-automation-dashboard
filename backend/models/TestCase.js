@@ -11,14 +11,27 @@ const TestStepSchema = new mongoose.Schema(
 
 const TestCaseSchema = new mongoose.Schema(
   {
+    // Human-readable ID (TC-0001), assigned on creation. Older test cases don't have one.
+    testCaseId: { type: String, trim: true },
     title: { type: String, required: true, trim: true },
+    scenario: { type: String, default: '' }, // one-line scenario / objective under test
     description: { type: String, default: '' },
     preconditions: { type: String, default: '' },
+    testData: { type: String, default: '' },
+    postconditions: { type: String, default: '' },
+    requirementRef: { type: String, default: '' }, // linked requirement / ticket, e.g. JIRA-123
+
+    // How the test case is written: step-by-step 'manual', or BDD 'cucumber' (Gherkin in `gherkin`).
+    format: { type: String, enum: ['manual', 'cucumber'], default: 'manual' },
+    gherkin: { type: String, default: '' },
     steps: {
       type: [TestStepSchema],
       default: [],
       validate: {
-        validator: (arr) => Array.isArray(arr) && arr.length > 0,
+        // Cucumber test cases keep their steps inside the Gherkin text.
+        validator: function (arr) {
+          return this?.format === 'cucumber' || (Array.isArray(arr) && arr.length > 0);
+        },
         message: 'At least one step is required'
       }
     },
@@ -54,5 +67,7 @@ const TestCaseSchema = new mongoose.Schema(
 
 TestCaseSchema.index({ project: 1, suite: 1 });
 TestCaseSchema.index({ tags: 1 });
+// Unique when present; legacy documents without an ID are ignored by the index.
+TestCaseSchema.index({ testCaseId: 1 }, { unique: true, partialFilterExpression: { testCaseId: { $type: 'string' } } });
 
 module.exports = mongoose.model('TestCase', TestCaseSchema);

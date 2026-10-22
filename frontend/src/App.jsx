@@ -7,6 +7,7 @@ import RunDetail from './pages/RunDetail';
 import FlakyTests from './pages/FlakyTests';
 import TestCases from './pages/TestCases';
 import TestCaseDetail from './pages/TestCaseDetail';
+import TestCaseForm from './pages/TestCaseForm';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
@@ -18,6 +19,8 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 
 function pageTitle(pathname) {
+  if (pathname === '/testcases/new') return 'New Test Case';
+  if (pathname.startsWith('/testcases/') && pathname.endsWith('/edit')) return 'Edit Test Case';
   const match = NAV_ITEMS.find((item) => (item.end ? pathname === item.to : pathname.startsWith(item.to)));
   if (match) return match.label;
   if (pathname.startsWith('/runs/')) return 'Run Detail';
@@ -31,8 +34,9 @@ function DashboardShell() {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="hidden w-64 shrink-0 border-r md:flex">
-        <AppSidebar className="w-64" />
+      {/* Pinned to the viewport: always full height, never scrolls away with the page. */}
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 self-start border-r border-sidebar-border md:flex">
+        <AppSidebar className="w-full" />
       </aside>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -45,20 +49,22 @@ function DashboardShell() {
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center gap-3 border-b bg-background px-4 md:px-6">
+        <header className="sticky top-0 z-30 flex h-[57px] shrink-0 items-center gap-3 border-b border-sidebar-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:px-6">
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileOpen(true)}>
             <Menu className="size-5" />
           </Button>
           <h1 className="text-sm font-semibold">{pageTitle(location.pathname)}</h1>
         </header>
 
-        <main className="flex-1 overflow-x-hidden p-4 md:p-6">
+        <main className="min-w-0 flex-1 p-4 md:p-6">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/runs" element={<RunsList />} />
             <Route path="/runs/:id" element={<RunDetail />} />
             <Route path="/flaky" element={<FlakyTests />} />
             <Route path="/testcases" element={<TestCases />} />
+            <Route path="/testcases/new" element={<TestCaseForm />} />
+            <Route path="/testcases/:id/edit" element={<TestCaseForm />} />
             <Route path="/testcases/:id" element={<TestCaseDetail />} />
           </Routes>
         </main>

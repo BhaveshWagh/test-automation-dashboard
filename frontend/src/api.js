@@ -76,3 +76,6 @@ export const getRun = (id) => api.get(`/runs/${id}`).then((r) => r.data);
 
 export const getTestCases = (params = {}) => api.get('/testcases', { params }).then((r) => r.data);
 export const getTestCase = (id) => api.get(`/testcases/${id}`).then((r) => r.data);
+export const createTestCase = (payload) => api.post('/testcases', payload).then((r) => r.data);
+export const validateGherkin = (gherkin) => api.post('/testcases/validate-gherkin', { gherkin }).then((r) => r.data);
+export const updateTestCase = (id, payload) => api.patch(`/testcases/${id}`, payload).then((r) => r.data);
