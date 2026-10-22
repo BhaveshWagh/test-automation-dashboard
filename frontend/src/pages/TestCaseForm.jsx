@@ -276,15 +276,6 @@ export default function TestCaseForm() {
         <ArrowLeft className="size-4" /> {isEdit ? 'Back to test case' : 'Back to all test cases'}
       </Link>
 
-      <div>
-        <h2 className="text-lg font-semibold">{isEdit ? 'Edit test case' : 'New test case'}</h2>
-        <p className="text-sm text-muted-foreground">
-          {isEdit
-            ? 'Update the details below. Changes apply as soon as you save.'
-            : 'Create a functional test case, written either as manual steps or as a Cucumber (Gherkin) feature.'}
-        </p>
-      </div>
-
       {/* Format */}
       <Card>
         <CardHeader>

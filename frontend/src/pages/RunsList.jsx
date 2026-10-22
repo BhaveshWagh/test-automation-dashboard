@@ -18,8 +18,6 @@ export default function RunsList() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold">All Runs</h2>
-
       <Card>
         <CardContent className="p-0">
           {data?.runs?.length ? (
